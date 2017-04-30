@@ -48,4 +48,4 @@ plot(tout,ref_u);
 title('Reference Platoon Input');
 xlabel('Time (s)');
 % ylabel('Acceleration (m/s^2)');
-legend('u^_1(t)', 'v_2(t)');
+legend('u_1(t)', 'v_2(t)');
