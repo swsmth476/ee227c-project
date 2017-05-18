@@ -11,7 +11,7 @@ function setup(block)
 
   %% Register number of input and output ports
   block.NumInputPorts  = 1;
-  block.NumOutputPorts = 1;
+  block.NumOutputPorts = 2;
 
   %% Setup functional port properties to dynamically
   %% inherited.
@@ -22,6 +22,9 @@ function setup(block)
   block.InputPort(1).DirectFeedthrough = false;
 
   block.OutputPort(1).Dimensions       = 2;
+  block.OutputPort(2).Dimensions       = 1;
+  block.OutputPort(1).SamplingMode = 'Sample';
+  block.OutputPort(2).SamplingMode = 'Sample';
   
   %% Set block sample time to inherited
   block.SampleTimes = [-1 0];
@@ -30,14 +33,23 @@ function setup(block)
   block.SimStateCompliance = 'DefaultSimState';
 
   %% Register methods
-  block.RegBlockMethod('InitializeConditions',    @InitConditions);  
-  block.RegBlockMethod('Outputs',                 @Output);  
+  block.RegBlockMethod('InitializeConditions',     @InitConditions);  
+  block.RegBlockMethod('SetInputPortSamplingMode', @SetInputSampling);
+  block.RegBlockMethod('Outputs',                  @Output);
   
 %endfunction
 
 function InitConditions(block) 
   block.OutputPort(1).Data = [0; 0];
   
+%endfunction
+
+function SetInputSampling(block, idx, fd)
+block.InputPort(idx).SamplingMode = fd;
+
+block.OutputPort(1).SamplingMode = fd;
+block.OutputPort(2).SamplingMode = fd;
+
 %endfunction
 
 function Output(block)
@@ -116,9 +128,14 @@ function Output(block)
   r_aug = zeros(1,2);
   
   % construct augmented system QP %
-  [H, f, A_constr, b_constr] = make_QP(7, 5, 2, A, B, theta, z, Qf_aug, qf_aug', Q_aug, q_aug', R, r', Hx, hx, Hu, hu);
+  % time MPC %
+  tic;
+  
+  [H, f, A_constr, b_constr] = make_QP(30, 3, 25, A, B, theta, z, Qf_aug, qf_aug', Q_aug, q_aug', R, r', Hx, hx, Hu, hu);
   
   [v, ~, exitflag] = quadprog(H, f, A_constr, b_constr);
+  
+  time = toc;
   
   v = v(1:2) + z(5:6);
 
@@ -127,5 +144,6 @@ function Output(block)
   end
   
   block.OutputPort(1).Data = v;
+  block.OutputPort(2).Data = time;
 
 %endfunction
